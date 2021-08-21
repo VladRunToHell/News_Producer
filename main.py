@@ -1,12 +1,13 @@
 import PySimpleGUI as sg
+import pandas as pd
 import sys
 import os
 import random
 
 sg.theme('Dark')
-layout = [  [sg.Button('Generate'),],
-            [sg.Text('main title')],
-            [sg.Button('title1'), ],
+name = ""
+layout = [  [sg.Button('Сгенерировать'),],
+            [sg.Button(name, key='title1', visible=False)],
             [sg.Button('title2')],
             [sg.Button('title3')],
             [sg.Button('title4')]]
@@ -18,11 +19,19 @@ while True:
     if event == sg.WIN_CLOSED or event == 'Cancel':
         break
 
-    if event == 'generate':
-        sg.popup_get_file('Enter PATH')
+    # Если нажимаем кнопку, то можем выбрать путь, потом меняется текст у кнопки title1 на name, также в переменную
+    # newsForTitleOne суется датасет
+    if event == 'Сгенерировать':
+        path = sg.popup_get_file('Введите путь')
+        data = pd.read_json(path)
+        newsForTitleOne = data
+        name = data['title'][0]
+        window.Element('title1').Update(name, visible=True)
+
+
 
     if event == 'title1':
-        sg.popup_scrolled('h')
+        sg.popup_scrolled(newsForTitleOne)
 
     if event == 'title2':
         sg.popup_scrolled('h')
