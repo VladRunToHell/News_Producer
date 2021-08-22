@@ -1,40 +1,22 @@
 import PySimpleGUI as sg
 import pandas as pd
 import keras as keras
-import tensorflow as tf
 import pickle
 import numpy as np
-from keras.models import Sequential
-from keras.layers import LSTM,Dense,Dropout,Embedding,CuDNNLSTM,Bidirectional
-from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
-from keras.layers import concatenate, SpatialDropout1D
-from keras.layers.core import Activation
-from keras.layers.wrappers import TimeDistributed
-from keras.layers.recurrent import LSTM
-from keras.layers.embeddings import Embedding
-from keras.regularizers import l2
-from tqdm import tqdm
-import tqdm
-from keras.layers import Attention
-from tensorflow.keras.layers import Input
-from keras.layers import Lambda
-from keras import backend as K
-from tensorflow.keras.models import Model
-from tensorflow.keras.callbacks import EarlyStopping
-import json
-import sys
-import os
-import random
 
-x = 575 # Координаты расположения начального окна
+# Координаты расположения начального окна
+x = 575
 y = 200
+
+# Индексы хедлайнов
 var1 = 0
 var2 = 1
 var3 = 2
 var4 = 3
 var5 = 4
 spisok = ''
+
 model = keras.models.load_model('model')
 encoder_model = keras.models.load_model('encoder_model')
 decoder_model = keras.models.load_model('decoder_model')
@@ -47,11 +29,19 @@ reverse_target_word_index = y_tokenizer.index_word
 reverse_source_word_index = x_tokenizer.index_word
 target_word_index = y_tokenizer.word_index
 
+# Токенизирует подающийся текст
 def seq(headlines):
     itog = x_tokenizer.texts_to_sequences(headlines)
+
+    sum=len(itog)*len(itog[0])
+
+    while sum>=80:
+      neg=len(itog)*len(itog[len(itog)-1])
+      itog.pop(len(itog)-1)
+      sum=sum-neg
     return itog
 
-
+#
 def decode_sequence(input_seq):
     (e_out, e_h, e_c) = encoder_model.predict(input_seq)
     target_seq = np.zeros((1, 1))
@@ -62,8 +52,7 @@ def decode_sequence(input_seq):
     decoded_sentence = ''
 
     while not stop_condition:
-        (output_tokens, h, c) = decoder_model.predict([target_seq]
-                                                      + [e_out, e_h, e_c])
+        (output_tokens, h, c) = decoder_model.predict([target_seq] + [e_out, e_h, e_c])
 
         sampled_token_index = np.argmax(output_tokens[0, -1, :])
         sampled_token = reverse_target_word_index[sampled_token_index]
@@ -83,13 +72,12 @@ def decode_sequence(input_seq):
     return decoded_sentence
 
 
-
 sg.theme('LightBlue6')
 name = ""
 layout = [  [sg.Button('Сгенерировать',
                        size=(100, 2), font=('Roboto', 13, 'bold'), pad=((0,0), (7, 3)))],
 
-            [sg.Button('Следующие новости',
+            [sg.Button('Следующие новости', visible= False, key= '-NEXT-',
                        size=(100, 1), font=('Roboto', 11, 'bold'), pad=((0, 0), (3, 3)))],
 
             # Название сюжета
@@ -122,10 +110,11 @@ layout = [  [sg.Button('Сгенерировать',
                      size=(55, 2), background_color='lightcyan', font=('Roboto', 11, 'italic'),
                      pad=((0, 0),(6, 6)), relief=sg.RELIEF_GROOVE, expand_x= True)],
 
+            # Кнопка, вызывающая список генерируемых названий сюжетов
             [sg.Button('Список названий', key='-SPISOK-', visible= False,
                         size=(100, 1), font=('Roboto', 11, 'bold'), pad=((0, 0), (3, 3)))]]
 
-window = sg.Window('Desgator', layout, size=(500, 450), location=(x, y), background_color='azure',
+window = sg.Window('Desgator', layout, size=(510, 450), location=(x, y), background_color='azure',
                    element_justification='centre')
 
 while True:
@@ -133,11 +122,11 @@ while True:
     if event == sg.WIN_CLOSED or event == 'Cancel':
         break
 
-    # Если нажимаем кнопку, то можем выбрать путь, потом меняется текст у кнопки title1 на name, также в переменную
-    # newsForTitleOne суется датасет
+    # Кнопка "Сгенерировать". Вызвает попап гетфайл для получения пути к файлу. Засовывает хедлайны из новостей в
+    # кликабельные лейблы. Запускает окно со всеми генируемыми названиями сюжетов
+    # P.S. Да, много чего можно было сделать через цикл, но нам не хотелось думать
     if event == 'Сгенерировать':
-        path = sg.popup_get_file('Введите путь', location=(x+520, y), font=('Roboto', 11, 'roman'),
-                                 background_color='azure')
+        path = sg.popup_get_file('Введите путь', no_window=True)
         if not path:
             sg.popup_error(('Ошибка'))
             exit()
@@ -155,32 +144,33 @@ while True:
         itog = decode_sequence(itog.reshape(1, 100))
         spisok += itog + '\n'
         window.Element('-MAINTITLE-').Update((itog), visible=True)
-        data = pd.read_json(path)
+
+        # Ниже будут блоки когда, которые подгружают заголовки новостей в лейблы и делают их видимыми
         newsForTitleOne = data['news'][var1]['body']
         name = data['news'][var1]['headline']
         window.Element('-TITLE1-').Update(name, visible=True)
 
-        data = pd.read_json(path)
         newsForTitleTwo = data['news'][var2]['body']
         name = data['news'][var2]['headline']
         window.Element('-TITLE2-').Update(name, visible=True)
 
-        data = pd.read_json(path)
         newsForTitleThree = data['news'][var3]['body']
         name = data['news'][var3]['headline']
         window.Element('-TITLE3-').Update(name, visible=True)
 
-        data = pd.read_json(path)
         newsForTitleFour = data['news'][var4]['body']
         name = data['news'][var4]['headline']
         window.Element('-TITLE4-').Update(name, visible=True)
 
-        data = pd.read_json(path)
         newsForTitleFive = data['news'][var5]['body']
         name = data['news'][var5]['headline']
         window.Element('-TITLE5-').Update(name, visible=True)
-        window.Element('-SPISOK-').Update(visible=True)
 
+        window.Element('-SPISOK-').Update(visible=True)
+        window.Element('-NEXT-').Update(visible=True)
+
+    # Кнопка "Следующие новости". Обновляет индексы новостей и показывает следующие 5 из сюжета.
+    # P.S Всё ещё не хотелось думать
     if event == 'Следующие новости':
         var1 += 5
         var2 += 5
@@ -188,31 +178,27 @@ while True:
         var4 += 5
         var5 += 5
 
-        data = pd.read_json(path)
         newsForTitleOne = data['news'][var1]['body']
         name = data['news'][var1]['headline']
         window.Element('-TITLE1-').Update(name, visible=True)
 
-        data = pd.read_json(path)
         newsForTitleTwo = data['news'][var2]['body']
         name = data['news'][var2]['headline']
         window.Element('-TITLE2-').Update(name, visible=True)
 
-        data = pd.read_json(path)
         newsForTitleThree = data['news'][var3]['body']
         name = data['news'][var3]['headline']
         window.Element('-TITLE3-').Update(name, visible=True)
 
-        data = pd.read_json(path)
         newsForTitleFour = data['news'][var4]['body']
         name = data['news'][var4]['headline']
         window.Element('-TITLE4-').Update(name, visible=True)
 
-        data = pd.read_json(path)
         newsForTitleFive = data['news'][var5]['body']
         name = data['news'][var5]['headline']
         window.Element('-TITLE5-').Update(name, visible=True)
 
+    # Обработка нажатия на лейбл
     if event == '-TITLE1-':
         sg.popup_scrolled(newsForTitleOne, title=data['news'][var1]['headline'],
                           size=(47, 30), location=(x - 460, y), font=('Roboto', 11, 'roman'), modal=False)
