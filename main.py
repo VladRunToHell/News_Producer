@@ -34,7 +34,7 @@ var2 = 1
 var3 = 2
 var4 = 3
 var5 = 4
-
+spisok = ''
 model = keras.models.load_model('model')
 encoder_model = keras.models.load_model('encoder_model')
 decoder_model = keras.models.load_model('decoder_model')
@@ -89,13 +89,13 @@ name = ""
 layout = [  [sg.Button('Сгенерировать',
                        size=(100, 2), font=('Roboto', 13, 'bold'), pad=((0,0), (7, 3)))],
 
-            [sg.Button('Следуюшие новости',
+            [sg.Button('Следующие новости',
                        size=(100, 1), font=('Roboto', 11, 'bold'), pad=((0, 0), (3, 3)))],
 
             # Название сюжета
-            [sg.Text('Название сюжета', key='-MAINTITLE-', auto_size_text=True,
+            [sg.Text('Название сюжета', key='-MAINTITLE-',visible=False, auto_size_text=True,
                      size=(100,1), text_color='White', font=('Roboto', 16, 'bold'), pad=((0, 0),(10, 10)),
-                     relief=sg.RELIEF_RIDGE, background_color='slategray', expand_x= True, justification='centre', visible=False)],
+                     relief=sg.RELIEF_RIDGE, background_color='slategray', expand_x= True, justification='centre')],
 
             # Заголовок 1
             [sg.Text(name, key='-TITLE1-', visible=False, enable_events=True, auto_size_text=True,
@@ -120,7 +120,10 @@ layout = [  [sg.Button('Сгенерировать',
             # Заголовок 5
             [sg.Text(name, key='-TITLE5-', visible=False, enable_events=True, auto_size_text=True,
                      size=(55, 2), background_color='lightcyan', font=('Roboto', 11, 'italic'),
-                     pad=((0, 0),(6, 6)), relief=sg.RELIEF_GROOVE, expand_x= True)]]
+                     pad=((0, 0),(6, 6)), relief=sg.RELIEF_GROOVE, expand_x= True)],
+
+            [sg.Button('Список названий', key='-SPISOK-', visible= False,
+                        size=(100, 1), font=('Roboto', 11, 'bold'), pad=((0, 0), (3, 3)))]]
 
 window = sg.Window('Desgator', layout, size=(500, 450), location=(x, y), background_color='azure',
                    element_justification='centre')
@@ -135,7 +138,9 @@ while True:
     if event == 'Сгенерировать':
         path = sg.popup_get_file('Введите путь', location=(x+520, y), font=('Roboto', 11, 'roman'),
                                  background_color='azure')
-
+        if not path:
+            sg.popup_error(('Ошибка'))
+            exit()
         data = pd.read_json(path)
         headlines = []
         for i in range(len(data['news'])):
@@ -148,30 +153,33 @@ while True:
         fin = np.asarray(fin)
         itog = pad_sequences(itog, maxlen=20, padding='post')
         itog = decode_sequence(itog.reshape(1, 100))
+        spisok += itog + '\n'
         window.Element('-MAINTITLE-').Update((itog), visible=True)
+        data = pd.read_json(path)
         newsForTitleOne = data['news'][var1]['body']
         name = data['news'][var1]['headline']
         window.Element('-TITLE1-').Update(name, visible=True)
 
-
+        data = pd.read_json(path)
         newsForTitleTwo = data['news'][var2]['body']
         name = data['news'][var2]['headline']
         window.Element('-TITLE2-').Update(name, visible=True)
 
-
+        data = pd.read_json(path)
         newsForTitleThree = data['news'][var3]['body']
         name = data['news'][var3]['headline']
         window.Element('-TITLE3-').Update(name, visible=True)
 
-
+        data = pd.read_json(path)
         newsForTitleFour = data['news'][var4]['body']
         name = data['news'][var4]['headline']
         window.Element('-TITLE4-').Update(name, visible=True)
 
-
+        data = pd.read_json(path)
         newsForTitleFive = data['news'][var5]['body']
         name = data['news'][var5]['headline']
         window.Element('-TITLE5-').Update(name, visible=True)
+        window.Element('-SPISOK-').Update(visible=True)
 
     if event == 'Следующие новости':
         var1 += 5
@@ -180,49 +188,53 @@ while True:
         var4 += 5
         var5 += 5
 
-
+        data = pd.read_json(path)
         newsForTitleOne = data['news'][var1]['body']
         name = data['news'][var1]['headline']
         window.Element('-TITLE1-').Update(name, visible=True)
 
-
+        data = pd.read_json(path)
         newsForTitleTwo = data['news'][var2]['body']
         name = data['news'][var2]['headline']
         window.Element('-TITLE2-').Update(name, visible=True)
 
-
+        data = pd.read_json(path)
         newsForTitleThree = data['news'][var3]['body']
         name = data['news'][var3]['headline']
         window.Element('-TITLE3-').Update(name, visible=True)
 
-
+        data = pd.read_json(path)
         newsForTitleFour = data['news'][var4]['body']
         name = data['news'][var4]['headline']
         window.Element('-TITLE4-').Update(name, visible=True)
 
-
+        data = pd.read_json(path)
         newsForTitleFive = data['news'][var5]['body']
         name = data['news'][var5]['headline']
         window.Element('-TITLE5-').Update(name, visible=True)
 
     if event == '-TITLE1-':
         sg.popup_scrolled(newsForTitleOne, title=data['news'][var1]['headline'],
-                          size=(55, 30), location=(x-510, y-100), font=('Roboto', 11, 'roman'))
+                          size=(47, 30), location=(x - 460, y), font=('Roboto', 11, 'roman'), modal=False)
 
     if event == '-TITLE2-':
         sg.popup_scrolled(newsForTitleTwo, data['news'][var2]['headline'],
-                          size=(55, 30), location=(x-510, y-100), font=('Roboto', 11, 'roman'))
+                          size=(55, 30), location=(x - 460, y - 50), font=('Roboto', 11, 'roman'), modal=False)
 
     if event == '-TITLE3-':
         sg.popup_scrolled(newsForTitleThree, data['news'][var3]['headline'],
-                          size=(55, 30), location=(x-510, y-100), font=('Roboto', 11, 'roman'))
+                          size=(55, 30), location=(x - 460, y - 50), font=('Roboto', 11, 'roman'))
 
     if event == '-TITLE4-':
         sg.popup_scrolled(newsForTitleFour, data['news'][var4]['headline'],
-                          size=(55, 30), location=(x-510, y-100), font=('Roboto', 11, 'roman'))
+                          size=(55, 30), location=(x - 460, y - 50), font=('Roboto', 11, 'roman'))
 
     if event == '-TITLE5-':
         sg.popup_scrolled(newsForTitleFive, data['news'][var5]['headline'],
-                          size=(55, 30), location=(x-510, y-100), font=('Roboto', 11, 'roman'))
+                          size=(55, 30), location=(x - 460, y - 50), font=('Roboto', 11, 'roman'))
+
+    if event == '-SPISOK-':
+        sg.popup_scrolled(spisok, size=(47, 30), location=(x + 520, y - 50), font=('Roboto', 11, 'roman'),
+                          no_titlebar=True, no_sizegrip=True)
 
 window.close()
