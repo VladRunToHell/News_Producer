@@ -32,13 +32,13 @@ target_word_index = y_tokenizer.word_index
 # Токенизирует подающийся текст
 def seq(headlines):
     itog = x_tokenizer.texts_to_sequences(headlines)
+    #Непонятно, срабатывает ли этот кусок
+   # sum=len(itog)*len(itog[0])
 
-    sum=len(itog)*len(itog[0])
-
-    while sum>=80:
-      neg=len(itog)*len(itog[len(itog)-1])
-      itog.pop(len(itog)-1)
-      sum=sum-neg
+    #while sum>=80:
+     # neg=len(itog)*len(itog[len(itog)-1])
+      #itog.pop(len(itog)-1)
+      #sum=sum-neg
     return itog
 
 #
